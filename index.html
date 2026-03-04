@@ -1,8 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Worker Status Tracker</title>
   <meta charset="UTF-8">
+  <title>Worker Status Tracker</title>
+  <style>
+    body { font-family: Arial; margin: 40px; }
+    input, select, button { margin: 5px; padding: 5px; }
+    table { border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background-color: #f2f2f2; }
+    button { cursor: pointer; }
+  </style>
 </head>
 <body>
 
@@ -11,7 +19,7 @@
 <form id="workerForm">
   <input type="text" id="name" placeholder="Name" required>
   <input type="text" id="department" placeholder="Department">
-  
+
   <select id="status">
     <option value="Work Trip">Work Trip</option>
     <option value="Sick">Sick</option>
@@ -27,7 +35,7 @@
 </form>
 
 <h3>Records</h3>
-<table border="1" id="recordsTable">
+<table>
   <thead>
     <tr>
       <th>Name</th>
@@ -39,12 +47,22 @@
       <th>Delete</th>
     </tr>
   </thead>
-  <tbody></tbody>
+  <tbody id="recordsBody"></tbody>
 </table>
 
 <script type="module">
 
-// 🔥 PASTE YOUR FIREBASE CONFIG HERE
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  onSnapshot, 
+  deleteDoc, 
+  doc 
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// 🔥 PASTE YOUR REAL FIREBASE CONFIG HERE
 const firebaseConfig = {
   apiKey: "AIzaSyBGNEWv4kZT1EoY9-QTqOZeCH5NUJoXwxA",
   authDomain: "worker-status-tracker.firebaseapp.com",
@@ -53,27 +71,24 @@ const firebaseConfig = {
   messagingSenderId: "457071297317",
   appId: "1:457071297317:web:53effe24df182f7b7050cc"
 };
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const workersCollection = collection(db, "workers");
 
 const form = document.getElementById("workerForm");
-const tableBody = document.querySelector("#recordsTable tbody");
-const workersCollection = collection(db, "workers");
+const recordsBody = document.getElementById("recordsBody");
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   await addDoc(workersCollection, {
-    name: name.value,
-    department: department.value,
-    status: status.value,
-    startDate: startDate.value,
-    endDate: endDate.value,
-    notes: notes.value,
+    name: document.getElementById("name").value,
+    department: document.getElementById("department").value,
+    status: document.getElementById("status").value,
+    startDate: document.getElementById("startDate").value,
+    endDate: document.getElementById("endDate").value,
+    notes: document.getElementById("notes").value,
     created: new Date()
   });
 
@@ -81,27 +96,30 @@ form.addEventListener("submit", async (e) => {
 });
 
 onSnapshot(workersCollection, (snapshot) => {
-  tableBody.innerHTML = "";
+  recordsBody.innerHTML = "";
+
   snapshot.forEach((docItem) => {
     const data = docItem.data();
-    const row = `
-      <tr>
-        <td>${data.name}</td>
-        <td>${data.department}</td>
-        <td>${data.status}</td>
-        <td>${data.startDate}</td>
-        <td>${data.endDate}</td>
-        <td>${data.notes}</td>
-        <td><button onclick="deleteRecord('${docItem.id}')">X</button></td>
-      </tr>
+
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>${data.name}</td>
+      <td>${data.department || ""}</td>
+      <td>${data.status}</td>
+      <td>${data.startDate}</td>
+      <td>${data.endDate || ""}</td>
+      <td>${data.notes || ""}</td>
+      <td><button data-id="${docItem.id}">X</button></td>
     `;
-    tableBody.innerHTML += row;
+
+    row.querySelector("button").addEventListener("click", async () => {
+      await deleteDoc(doc(db, "workers", docItem.id));
+    });
+
+    recordsBody.appendChild(row);
   });
 });
-
-window.deleteRecord = async (id) => {
-  await deleteDoc(doc(db, "workers", id));
-};
 
 </script>
 
