@@ -17,24 +17,27 @@
 <h2>Worker Status Tracker</h2>
 
 <form id="workerForm">
-  <input type="text" id="name" placeholder="Name" required>
-  <input type="text" id="department" placeholder="Department">
 
-  <select id="status">
+  <input type="text" id="name" name="name" placeholder="Name" required>
+  <input type="text" id="department" name="department" placeholder="Department">
+
+  <select id="status" name="status">
     <option value="Work Trip">Work Trip</option>
     <option value="Sick">Sick</option>
     <option value="Vacation">Vacation</option>
     <option value="Personal Day">Personal Day</option>
   </select>
 
-  <input type="date" id="startDate" required>
-  <input type="date" id="endDate">
-  <input type="text" id="notes" placeholder="Notes">
+  <input type="date" id="startDate" name="startDate" required>
+  <input type="date" id="endDate" name="endDate">
+  <input type="text" id="notes" name="notes" placeholder="Notes">
 
   <button type="submit">Add</button>
+
 </form>
 
 <h3>Records</h3>
+
 <table>
   <thead>
     <tr>
@@ -62,14 +65,14 @@ import {
   doc 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// 🔥 PASTE YOUR REAL FIREBASE CONFIG HERE
 const firebaseConfig = {
-  apiKey: "AIzaSyBGNEWv4kZT1EoY9-QTqOZeCH5NUJoXwxA",
+ apiKey: "AIzaSyBGNEWv4kZT1EoY9-QTqOZeCH5NUJoXwxA",
   authDomain: "worker-status-tracker.firebaseapp.com",
   projectId: "worker-status-tracker",
   storageBucket: "worker-status-tracker.firebasestorage.app",
   messagingSenderId: "457071297317",
   appId: "1:457071297317:web:53effe24df182f7b7050cc"
+
 };
 
 const app = initializeApp(firebaseConfig);
@@ -82,17 +85,29 @@ const recordsBody = document.getElementById("recordsBody");
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const formData = new FormData(form);
+  const name = document.getElementById("name").value || "";
+  const department = document.getElementById("department").value || "";
+  const status = document.getElementById("status").value || "";
+  const startDate = document.getElementById("startDate").value || "";
+  const endDate = document.getElementById("endDate").value || "";
+  const notes = document.getElementById("notes").value || "";
+
+  if (!name || !startDate) {
+    alert("Name and Start Date are required.");
+    return;
+  }
 
   const workerData = {
-    name: formData.get("name") || "",
-    department: formData.get("department") || "",
-    status: formData.get("status") || "",
-    startDate: formData.get("startDate") || "",
-    endDate: formData.get("endDate") || "",
-    notes: formData.get("notes") || "",
+    name: String(name),
+    department: String(department),
+    status: String(status),
+    startDate: String(startDate),
+    endDate: String(endDate),
+    notes: String(notes),
     created: new Date()
   };
+
+  console.log("Saving:", workerData); // debug
 
   await addDoc(workersCollection, workerData);
 
@@ -108,10 +123,10 @@ onSnapshot(workersCollection, (snapshot) => {
     const row = document.createElement("tr");
 
     row.innerHTML = `
-      <td>${data.name}</td>
+      <td>${data.name || ""}</td>
       <td>${data.department || ""}</td>
-      <td>${data.status}</td>
-      <td>${data.startDate}</td>
+      <td>${data.status || ""}</td>
+      <td>${data.startDate || ""}</td>
       <td>${data.endDate || ""}</td>
       <td>${data.notes || ""}</td>
       <td><button data-id="${docItem.id}">X</button></td>
