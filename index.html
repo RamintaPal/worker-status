@@ -82,15 +82,19 @@ const recordsBody = document.getElementById("recordsBody");
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  await addDoc(workersCollection, {
-    name: document.getElementById("name").value,
-    department: document.getElementById("department").value,
-    status: document.getElementById("status").value,
-    startDate: document.getElementById("startDate").value,
-    endDate: document.getElementById("endDate").value,
-    notes: document.getElementById("notes").value,
+  const formData = new FormData(form);
+
+  const workerData = {
+    name: formData.get("name") || "",
+    department: formData.get("department") || "",
+    status: formData.get("status") || "",
+    startDate: formData.get("startDate") || "",
+    endDate: formData.get("endDate") || "",
+    notes: formData.get("notes") || "",
     created: new Date()
-  });
+  };
+
+  await addDoc(workersCollection, workerData);
 
   form.reset();
 });
