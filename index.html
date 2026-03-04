@@ -1,72 +1,119 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Worker Status Tracker</title>
-  <style>
-    body { font-family: Arial; margin: 40px; }
-    input, select, button { margin: 5px; padding: 5px; }
-    table { border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; }
-    th { background-color: #f2f2f2; }
-    button { cursor: pointer; }
-  </style>
+<meta charset="UTF-8">
+<title>Worker Status Calendar</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 30px;
+  background: #f4f6f9;
+}
+
+h1 {
+  margin-bottom: 10px;
+}
+
+form {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 25px;
+}
+
+input, select, button {
+  padding: 6px;
+  margin: 5px;
+}
+
+button {
+  cursor: pointer;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.day {
+  background: white;
+  min-height: 120px;
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  font-size: 12px;
+}
+
+.day-number {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.worker {
+  margin-bottom: 4px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  color: white;
+  font-size: 11px;
+}
+
+.worktrip { background: #3498db; }
+.sick { background: #e74c3c; }
+.vacation { background: #27ae60; }
+.personal { background: #f39c12; }
+
+.legend {
+  margin-bottom: 15px;
+}
+.legend span {
+  margin-right: 15px;
+  font-size: 13px;
+}
+</style>
 </head>
+
 <body>
 
-<h2>Worker Status Tracker</h2>
+<h1>Worker Status Calendar</h1>
 
 <form id="workerForm">
+  <input type="text" id="name" placeholder="Name" required>
+  <input type="text" id="department" placeholder="Department">
 
-  <input type="text" id="name" name="name" placeholder="Name" required>
-  <input type="text" id="department" name="department" placeholder="Department">
-
-  <select id="status" name="status">
-    <option value="Work Trip">Work Trip</option>
-    <option value="Sick">Sick</option>
-    <option value="Vacation">Vacation</option>
-    <option value="Personal Day">Personal Day</option>
+  <select id="status">
+    <option value="worktrip">Work Trip</option>
+    <option value="sick">Sick</option>
+    <option value="vacation">Vacation</option>
+    <option value="personal">Personal Day</option>
   </select>
 
-  <input type="date" id="startDate" name="startDate" required>
-  <input type="date" id="endDate" name="endDate">
-  <input type="text" id="notes" name="notes" placeholder="Notes">
+  <input type="date" id="startDate" required>
+  <input type="date" id="endDate">
 
   <button type="submit">Add</button>
-
 </form>
 
-<h3>Records</h3>
+<div class="legend">
+  <span style="color:#3498db;">■ Work Trip</span>
+  <span style="color:#e74c3c;">■ Sick</span>
+  <span style="color:#27ae60;">■ Vacation</span>
+  <span style="color:#f39c12;">■ Personal</span>
+</div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Department</th>
-      <th>Status</th>
-      <th>Start</th>
-      <th>End</th>
-      <th>Notes</th>
-      <th>Delete</th>
-    </tr>
-  </thead>
-  <tbody id="recordsBody"></tbody>
-</table>
+<h2 id="monthTitle"></h2>
+<div class="calendar" id="calendar"></div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  onSnapshot, 
-  deleteDoc, 
-  doc 
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
- apiKey: "AIzaSyBGNEWv4kZT1EoY9-QTqOZeCH5NUJoXwxA",
+  apiKey: "AIzaSyBGNEWv4kZT1EoY9-QTqOZeCH5NUJoXwxA",
   authDomain: "worker-status-tracker.firebaseapp.com",
   projectId: "worker-status-tracker",
   storageBucket: "worker-status-tracker.firebasestorage.app",
@@ -79,65 +126,67 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const workersCollection = collection(db, "workers");
 
+const calendar = document.getElementById("calendar");
+const monthTitle = document.getElementById("monthTitle");
 const form = document.getElementById("workerForm");
-const recordsBody = document.getElementById("recordsBody");
+
+const today = new Date();
+const year = today.getFullYear();
+const month = today.getMonth();
+
+monthTitle.innerText = today.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+function generateCalendar(workers) {
+  calendar.innerHTML = "";
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  for (let i = 1; i <= lastDay.getDate(); i++) {
+    const dayDiv = document.createElement("div");
+    dayDiv.className = "day";
+
+    const dayNumber = document.createElement("div");
+    dayNumber.className = "day-number";
+    dayNumber.innerText = i;
+    dayDiv.appendChild(dayNumber);
+
+    const currentDate = new Date(year, month, i);
+
+    workers.forEach(worker => {
+      const start = new Date(worker.startDate);
+      const end = worker.endDate ? new Date(worker.endDate) : start;
+
+      if (currentDate >= start && currentDate <= end) {
+        const workerDiv = document.createElement("div");
+        workerDiv.className = "worker " + worker.status;
+        workerDiv.innerText = worker.name;
+        dayDiv.appendChild(workerDiv);
+      }
+    });
+
+    calendar.appendChild(dayDiv);
+  }
+}
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const name = document.getElementById("name").value || "";
-  const department = document.getElementById("department").value || "";
-  const status = document.getElementById("status").value || "";
-  const startDate = document.getElementById("startDate").value || "";
-  const endDate = document.getElementById("endDate").value || "";
-  const notes = document.getElementById("notes").value || "";
-
-  if (!name || !startDate) {
-    alert("Name and Start Date are required.");
-    return;
-  }
-
-  const workerData = {
-    name: String(name),
-    department: String(department),
-    status: String(status),
-    startDate: String(startDate),
-    endDate: String(endDate),
-    notes: String(notes),
-    created: new Date()
-  };
-
-  console.log("Saving:", workerData); // debug
-
-  await addDoc(workersCollection, workerData);
+  await addDoc(workersCollection, {
+    name: document.getElementById("name").value,
+    department: document.getElementById("department").value,
+    status: document.getElementById("status").value,
+    startDate: document.getElementById("startDate").value,
+    endDate: document.getElementById("endDate").value || document.getElementById("startDate").value
+  });
 
   form.reset();
 });
 
 onSnapshot(workersCollection, (snapshot) => {
-  recordsBody.innerHTML = "";
-
-  snapshot.forEach((docItem) => {
-    const data = docItem.data();
-
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-      <td>${data.name || ""}</td>
-      <td>${data.department || ""}</td>
-      <td>${data.status || ""}</td>
-      <td>${data.startDate || ""}</td>
-      <td>${data.endDate || ""}</td>
-      <td>${data.notes || ""}</td>
-      <td><button data-id="${docItem.id}">X</button></td>
-    `;
-
-    row.querySelector("button").addEventListener("click", async () => {
-      await deleteDoc(doc(db, "workers", docItem.id));
-    });
-
-    recordsBody.appendChild(row);
-  });
+  const workers = [];
+  snapshot.forEach(doc => workers.push(doc.data()));
+  generateCalendar(workers);
 });
 
 </script>
